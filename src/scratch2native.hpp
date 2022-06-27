@@ -67,6 +67,8 @@ struct Compiler
         ADD_CALLBACK(control_repeat);
 
         ADD_CALLBACK(procedures_call);
+        ADD_CALLBACK(procedures_definition);
+        ADD_CALLBACK(procedures_prototype);
     }
 
     ~Compiler() = default;
@@ -105,6 +107,8 @@ private:
     void control_repeat(const json &block);
 
     void procedures_call(const json &block);
+    void procedures_definition(const json &block);
+    void procedures_prototype(const json &block);
 
     void codegen_value(const json &val);
     void codegen_block_chain(const json &root);

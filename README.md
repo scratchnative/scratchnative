@@ -34,6 +34,7 @@ The goal of this project is to safely compile Scratch3 projects to fast, native 
 - [x] `operator_round` (TODO)
 - [x] `control_if`
 - [x] `control_repeat`
+- [x] Extern C functions through `procedures_call`
 - [ ] the rest
 
 ## How to use

@@ -22,7 +22,7 @@ void Compiler::initialize_from_json()
 
     for (auto [key, val] : _json.at("targets")[0].at("blocks").items())
     {
-        if (val.at("next").is_null() && val.at("parent").is_null())
+        if (val.at("next").is_null() && val.at("parent").is_null() && val.at("opcode").is_null())
             continue;
 
         _blocks[key] = val;
@@ -30,7 +30,7 @@ void Compiler::initialize_from_json()
 
     for (auto [key, val] : _blocks)
     {
-        if (val.at("parent").is_null())
+        if (val.at("parent").is_null() && val.at("opcode").get<std::string>() != "procedures_definition")
         {
             _root_block = val;
             break;
@@ -49,6 +49,12 @@ void Compiler::compile()
         _out.print("#include <stdio.h>\n#include <vector>\n#include <string>\n#include <cmath>\n#include <ctime>\n");
     }
 
+    for (auto [name, block] : _blocks)
+    {
+        if (block.at("opcode").get<std::string>() == "procedures_definition")
+            codegen_block(block);
+    }
+
     json block_to_execute = _root_block;
 
     codegen_block_chain(_root_block);
@@ -64,6 +70,9 @@ void Compiler::compile()
 void Compiler::codegen_block_chain(const json &root)
 {
     auto block_to_execute = root;
+
+    if (block_to_execute.is_null())
+        return;
 
     while (true)
     {
@@ -199,26 +208,131 @@ void Compiler::procedures_call(const json &block)
 
     auto args_ids_str = block.at("mutation").at("argumentids").get<std::string>();
     auto args_ids = json::parse(args_ids_str);
+    auto func_name_str = block.at("mutation").at("proccode").get<std::string>();
 
-    if (block.at("mutation").at("proccode").get<std::string>() == "poke8 %s %s")
+    bool poke = false;
+
+    if (func_name_str == "poke8 %s %s")
     {
+        poke = true;
         _out.print("*(uint8_t*)((uintptr_t)");
-
-        codegen_expr(block.at("inputs").at(args_ids[0].get<std::string>()));
-        _out.print(") = ");
-        codegen_expr(block.at("inputs").at(args_ids[1].get<std::string>()));
-        _out.print(";\n");
     }
 
-    else if (block.at("mutation").at("proccode").get<std::string>() == "poke16 %s %s")
+    else if (func_name_str == "poke16 %s %s")
     {
+        poke = true;
         _out.print("*(uint16_t*)((uintptr_t)");
+    }
 
+    else if (func_name_str == "poke32 %s %s")
+    {
+        poke = true;
+        _out.print("*(uint32_t*)((uintptr_t)");
+    }
+
+    else if (func_name_str == "poke64 %s %s")
+    {
+        poke = true;
+        _out.print("*(uint64_t*)((uintptr_t)");
+    }
+
+    if (poke)
+    {
         codegen_expr(block.at("inputs").at(args_ids[0].get<std::string>()));
         _out.print(") = ");
         codegen_expr(block.at("inputs").at(args_ids[1].get<std::string>()));
         _out.print(";\n");
     }
 
-    fmt::print("{}\n", args_ids.dump());
+    else
+    {
+        if (func_name_str.find(':') != std::string::npos)
+            func_name_str = func_name_str.substr(func_name_str.find(':') + 2, func_name_str.size());
+
+        auto function_name = space2underscore(func_name_str.substr(0, func_name_str.find('%') - 1));
+
+        _out.print("{}(", function_name);
+
+        for (size_t i = 0; i < args_ids.size(); i++)
+        {
+            codegen_expr(block.at("inputs").at(args_ids[i].get<std::string>()));
+
+            if (i != args_ids.size() - 1)
+            {
+                _out.print(",");
+            }
+        }
+
+        _out.print(");");
+    }
+}
+
+void Compiler::procedures_prototype(const json &block)
+{
+    auto func_name_str = block.at("mutation").at("proccode").get<std::string>();
+    auto func_name = func_name_str.substr(0, func_name_str.find('%') - 1);
+    auto args_names_str = block.at("mutation").at("argumentnames").get<std::string>();
+    auto args_names = json::parse(args_names_str);
+
+    auto arg_type_to_c_type = [&](std::string type)
+    {
+        if (type == "STRING")
+            _out.print("const char *");
+        else if (type == "INT")
+            _out.print("int");
+    };
+
+    if (func_name != "poke8" && func_name != "poke16" && func_name != "poke32" && func_name != "poke64")
+    {
+        if (func_name.find(':') == std::string::npos)
+        {
+            _out.print("void");
+            _out.print("{}", func_name);
+        }
+
+        else
+        {
+            arg_type_to_c_type(func_name.substr(0, func_name.find(':')));
+            _out.print("{}", func_name.substr(func_name.find(':') + 1, func_name.size()));
+        }
+
+        _out.print("(");
+    }
+
+    for (auto arg : args_names)
+    {
+        auto arg_str = arg.get<std::string>();
+
+        if (arg_str.find(':') == std::string::npos)
+            break;
+
+        auto arg_type = arg_str.substr(0, arg_str.find(':'));
+
+        arg_type_to_c_type(arg_type);
+
+        _out.print("{}", arg_str.substr(arg_str.find(':') + 1, arg_str.size()));
+    }
+
+    _out.print(")");
+}
+
+void Compiler::procedures_definition(const json &block)
+{
+    if (block.at("next").is_null())
+    {
+        _out.print("extern \"C\" ");
+    }
+
+    codegen_block(_blocks[block.at("inputs").at("custom_block")[1].get<std::string>()]);
+    if (block.at("next").is_null())
+    {
+        _out.print(";\n");
+    }
+
+    else
+    {
+        _out.print("\n{{");
+        codegen_block_chain(block);
+        _out.print("\n}}");
+    }
 }
