@@ -246,15 +246,19 @@ void Compiler::procedures_call(const json &block)
 
     else
     {
-        if (func_name_str.find(':') != std::string::npos)
-            func_name_str = func_name_str.substr(func_name_str.find(':') + 2, func_name_str.size());
+        auto func_name = func_name_str.substr(0, func_name_str.find('%') - 1);
+        auto proc = _functions[func_name];
 
-        auto function_name = space2underscore(func_name_str.substr(0, func_name_str.find('%') - 1));
-
-        _out.print("{}(", function_name);
+        _out.print("{}(", proc.pretty_name);
 
         for (size_t i = 0; i < args_ids.size(); i++)
         {
+            if (proc.parameters[i].type == ScratchProcedure::Parameter::VARIADIC)
+            {
+                codegen_expr(block.at("inputs").at(args_ids[i].get<std::string>()));
+                break;
+            }
+
             codegen_expr(block.at("inputs").at(args_ids[i].get<std::string>()));
 
             if (i != args_ids.size() - 1)
@@ -277,9 +281,15 @@ void Compiler::procedures_prototype(const json &block)
     auto arg_type_to_c_type = [&](std::string type)
     {
         if (type == "STRING")
+        {
+            _functions[func_name].parameters.push_back({ScratchProcedure::Parameter::STRING});
             _out.print("const char *");
+        }
         else if (type == "INT")
+        {
+            _functions[func_name].parameters.push_back({ScratchProcedure::Parameter::INT});
             _out.print("int");
+        }
     };
 
     if (func_name != "poke8" && func_name != "poke16" && func_name != "poke32" && func_name != "poke64")
@@ -287,15 +297,16 @@ void Compiler::procedures_prototype(const json &block)
         if (func_name.find(':') == std::string::npos)
         {
             _out.print("void");
-            _out.print("{}", func_name);
+            _functions[func_name].pretty_name = space2underscore(func_name);
         }
 
         else
         {
             arg_type_to_c_type(func_name.substr(0, func_name.find(':')));
-            _out.print("{}", func_name.substr(func_name.find(':') + 1, func_name.size()));
-        }
 
+            _functions[func_name].pretty_name = space2underscore(func_name.substr(func_name.find(':') + 2, func_name.size()));
+        }
+        _out.print(" {}", _functions[func_name].pretty_name);
         _out.print("(");
     }
 
@@ -303,8 +314,15 @@ void Compiler::procedures_prototype(const json &block)
     {
         auto arg_str = arg.get<std::string>();
 
+        if (arg_str == "_Variadic")
+        {
+            _functions[func_name].parameters.push_back({ScratchProcedure::Parameter::VARIADIC});
+            _out.print("...");
+            continue;
+        }
+
         if (arg_str.find(':') == std::string::npos)
-            break;
+            continue;
 
         auto arg_type = arg_str.substr(0, arg_str.find(':'));
 

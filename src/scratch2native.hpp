@@ -34,6 +34,24 @@ struct ScratchValue
     std::variant<int64_t, int32_t, uint32_t, std::string> data;
 };
 
+struct ScratchProcedure
+{
+    struct Parameter
+    {
+        enum
+        {
+            VARIADIC,
+            STRING,
+            INT,
+        } type;
+
+        const char *name;
+    };
+
+    std::vector<Parameter> parameters;
+    std::string pretty_name;
+};
+
 #define ADD_CALLBACK(name) _opcode_callbacks[#name] = std::bind(&Compiler::name, this, std::placeholders::_1);
 
 struct Compiler
@@ -132,6 +150,7 @@ private:
     }
 
     std::unordered_map<std::string, ScratchValue> _variables{};
+    std::unordered_map<std::string, ScratchProcedure> _functions{};
     std::unordered_map<std::string, json> _blocks{};
     std::unordered_map<std::string, std::function<void(const json &)>> _opcode_callbacks{};
 
