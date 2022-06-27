@@ -12,29 +12,29 @@ The goal of this project is to safely compile Scratch3 projects to fast, native 
 
 ## Supported opcodes
 
-- `event_whenflagclicked` [X]
-- `data_setvariableto` [X]
-- `data_showvariable` [X]
-- `operator_add` [X]
-- `operator_substract` [X]
-- `operator_multiply` [X]
-- `operator_divide` [X]
-- `operator_lt` [X]
-- `operator_equals` [X]
-- `operator_gt` [X]
-- `operator_and` [X]
-- `operator_or` [X]
-- `operator_not` [X]
-- `operator_random` [X] (TODO)
-- `operator_join` [X] (TODO)
-- `operator_letter_of` [X] (TODO)
-- `operator_length` [X] (TODO)
-- `operator_contains` [X] (TODO)
-- `operator_mod` [X] (TODO)
-- `operator_round` [X] (TODO)
-- `control_if` [X]
-- `control_repeat` [X]
-- TODO: the rest [ ]
+- [x] `event_whenflagclicked`
+- [x] `data_setvariableto`
+- [x] `data_showvariable`
+- [x] `operator_add`
+- [x] `operator_substract`
+- [x] `operator_multiply`
+- [x] `operator_divide`
+- [x] `operator_lt`
+- [x] `operator_equals`
+- [x] `operator_gt`
+- [x] `operator_and`
+- [x] `operator_or`
+- [x] `operator_not`
+- [x] `operator_random` (TODO)
+- [x] `operator_join` (TODO)
+- [x] `operator_letter_of` (TODO)
+- [x] `operator_length` (TODO)
+- [x] `operator_contains` (TODO)
+- [x] `operator_mod` (TODO)
+- [x] `operator_round` (TODO)
+- [x] `control_if`
+- [x] `control_repeat`
+- [ ] the rest
 
 ## How to use
 First, you need to build the program using cmake (Look it up if you don't know how).
