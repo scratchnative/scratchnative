@@ -91,7 +91,6 @@ void Compiler::data_showvariable(const json &block)
 {
     auto var = _variables[block.at("fields").at("VARIABLE")[1]];
 
-fmt:
     if (!_freestanding)
     {
         _out.print("printf(\"{}\\n\", {});\n", var.type == NUMBER ? "%d" : "", space2underscore(block.at("fields").at("VARIABLE")[0].get<std::string>()));

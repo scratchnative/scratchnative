@@ -4,3 +4,4 @@ build*
 .cache
 *.sb3
 *.json
+output.cpp
