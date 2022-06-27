@@ -56,7 +56,7 @@ struct ScratchProcedure
 
 struct Compiler
 {
-    Compiler(json j, fmt::ostream &out, bool freestanding) : _json(std::move(j)), _out(out), _freestanding(freestanding)
+    Compiler(json j, fmt::ostream &out, bool freestanding, bool to_c) : _json(std::move(j)), _out(out), _freestanding(freestanding), _to_c(to_c)
     {
         ADD_CALLBACK(event_whenflagclicked);
         ADD_CALLBACK(data_setvariableto);
@@ -158,10 +158,10 @@ private:
     fmt::ostream &_out;
     ScratchValue *_lvalue = nullptr;
 
-    bool _freestanding = false;
+    bool _freestanding = false, _to_c = false;
 };
 
-void compile_scratch(json j, fmt::ostream &out, bool freestanding);
+void compile_scratch(json j, fmt::ostream &out, bool freestanding, bool to_c);
 } // namespace scratch2native
 
 #endif // SCRATCHNATIVE_SCRATCH2NATIVE_HPP

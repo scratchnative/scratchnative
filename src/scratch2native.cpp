@@ -5,9 +5,9 @@
 
 using namespace scratch2native;
 
-void scratch2native::compile_scratch(json j, fmt::ostream &out, bool freestanding)
+void scratch2native::compile_scratch(json j, fmt::ostream &out, bool freestanding, bool to_c)
 {
-    Compiler compiler{std::move(j), out, freestanding};
+    Compiler compiler{std::move(j), out, freestanding, to_c};
 
     compiler.compile();
 }
@@ -44,9 +44,13 @@ void Compiler::compile()
 
     _out.print("#include <stdint.h>\n#include <stddef.h>\n#include <stdbool.h>\n");
 
-    if (!_freestanding)
+    if (!_freestanding && !_to_c)
     {
         _out.print("#include <stdio.h>\n#include <vector>\n#include <string>\n#include <cmath>\n#include <ctime>\n");
+    }
+    else if (!_freestanding && _to_c)
+    {
+        _out.print("#include <stdio.h>\n#include <math.h>\n#include <time.h>\n");
     }
 
     for (auto [name, block] : _blocks)
@@ -108,7 +112,7 @@ void Compiler::event_whenflagclicked(const json &block)
 {
     (void)block;
 
-    _out.print("void scratch_main()\n{{\n\n");
+    _out.print("void scratch_main(void)\n{{\n\n");
 
     if (!_freestanding)
     {
@@ -310,8 +314,9 @@ void Compiler::procedures_prototype(const json &block)
         _out.print("(");
     }
 
-    for (auto arg : args_names)
+    for (int i = 0; i < args_names.size(); i++)
     {
+        auto arg = args_names[i];
         auto arg_str = arg.get<std::string>();
 
         if (arg_str == "_Variadic")
@@ -329,6 +334,9 @@ void Compiler::procedures_prototype(const json &block)
         arg_type_to_c_type(arg_type);
 
         _out.print("{}", arg_str.substr(arg_str.find(':') + 1, arg_str.size()));
+
+        if (i != args_names.size() - 1)
+            _out.print(",");
     }
 
     _out.print(")");
@@ -336,7 +344,7 @@ void Compiler::procedures_prototype(const json &block)
 
 void Compiler::procedures_definition(const json &block)
 {
-    if (block.at("next").is_null())
+    if (block.at("next").is_null() && !_to_c)
     {
         _out.print("extern \"C\" ");
     }

@@ -6,7 +6,7 @@
 
 int main(int argc, const char **argv)
 {
-    bool freestanding = false;
+    bool freestanding = false, to_c = false;
     const char *output = "output.cpp", *input = "project.json";
 
     for (int i = 0; i < argc; i++)
@@ -18,6 +18,10 @@ int main(int argc, const char **argv)
         else if (!std::strcmp(argv[i], "--output") || !std::strcmp(argv[i], "-o"))
         {
             output = argv[++i];
+        }
+        else if (!std::strcmp(argv[i], "--to-c") || !std::strcmp(argv[i], "-c"))
+        {
+            to_c = true;
         }
         else if (argv[i][0] != '-' && i != 0)
         {
@@ -43,7 +47,7 @@ int main(int argc, const char **argv)
     json j;
     i >> j;
 
-    scratch2native::compile_scratch(j, out, freestanding);
+    scratch2native::compile_scratch(j, out, freestanding, to_c);
 
     return 0;
 }

@@ -9,6 +9,7 @@ colorama.init()
 
 parser = argparse.ArgumentParser(prog='scratch2exe')
 parser.add_argument('-c', action='store_true')
+parser.add_argument('--to_c', action='store_true', help='Compile to C instead of C++')
 parser.add_argument('-o', nargs='?', default='output', help='Output file')
 parser.add_argument('--json', nargs='?', default='project.json', help='json output file')
 parser.add_argument('--scratchnative', nargs='?', default='scratchnative', help='path to scratchnative executable')
@@ -31,8 +32,8 @@ def transpile_project():
     print(colorama.Fore.GREEN + "Done" + colorama.Style.RESET_ALL)
 
 def compile_project():
-    print("=> Compiling C++ output...", end=" ");
-    os.system(f'c++ output.cpp -o {args.o}');
+    print(f"=> Compiling {'C++' if not args.to_c else 'C'} output...", end=" ");
+    os.system(f'{"c++" if not args.to_c else "cc"} output.cpp -o {args.o}');
     print(colorama.Fore.GREEN + "Done" + colorama.Style.RESET_ALL)
 
 if args.action[0] == 'fetch':
