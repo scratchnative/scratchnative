@@ -8,7 +8,7 @@ The goal of this project is to safely compile Scratch3 projects to fast, native 
 
 - [ScratchOS](https://github.com/scratchnative/scratchOS), an actual operating system kernel written in Scratch
 
-- WIP: Linux kernel modules in scratch
+- [Linux kernel modules in scratch](https://github.com/scratchnative/scratch-linux-modules)
 
 ## Supported opcodes
 
