@@ -1,0 +1,73 @@
+{
+  "targets": [
+    {
+      "isStage": true,
+      "name": "Stage",
+      "variables": { "`jEk@4|i[#Fk?(8x)AV.-my variable": ["my variable", 2] },
+      "lists": { "(rM-0;Kc{ni^^yg,n(V?": ["my_list", ["1"]] },
+      "broadcasts": {},
+      "blocks": {
+        "srDHHoA(}lr)i:xf*HDJ": {
+          "opcode": "event_whenflagclicked",
+          "next": "PIghUL]8E,|M^/=7H=|d",
+          "parent": null,
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": true,
+          "x": 545,
+          "y": 293
+        },
+        "PIghUL]8E,|M^/=7H=|d": {
+          "opcode": "data_addtolist",
+          "next": null,
+          "parent": "srDHHoA(}lr)i:xf*HDJ",
+          "inputs": { "ITEM": [1, [10, "1"]] },
+          "fields": { "LIST": ["my_list", "(rM-0;Kc{ni^^yg,n(V?"] },
+          "shadow": false,
+          "topLevel": false
+        }
+      },
+      "comments": {},
+      "currentCostume": 0,
+      "costumes": [
+        {
+          "name": "backdrop1",
+          "dataFormat": "svg",
+          "assetId": "cd21514d0531fdffb22204e0ec5ed84a",
+          "md5ext": "cd21514d0531fdffb22204e0ec5ed84a.svg",
+          "rotationCenterX": 240,
+          "rotationCenterY": 180
+        }
+      ],
+      "sounds": [],
+      "volume": 100,
+      "layerOrder": 0,
+      "tempo": 60,
+      "videoTransparency": 50,
+      "videoState": "on",
+      "textToSpeechLanguage": null
+    }
+  ],
+  "monitors": [
+    {
+      "id": "(rM-0;Kc{ni^^yg,n(V?",
+      "mode": "list",
+      "opcode": "data_listcontents",
+      "params": { "LIST": "my_list" },
+      "spriteName": null,
+      "value": ["1"],
+      "width": 0,
+      "height": 0,
+      "x": 5,
+      "y": 6,
+      "visible": true
+    }
+  ],
+  "extensions": [],
+  "meta": {
+    "semver": "3.0.0",
+    "vm": "1.5.29",
+    "agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
+  }
+}
