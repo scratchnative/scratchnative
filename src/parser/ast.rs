@@ -1,21 +1,18 @@
 use log::*;
 
-use crate::parser::{ScratchBlock, ScratchFile, ScratchValue};
+use crate::parser::{ScratchBlock, ScratchFile, ScratchValue, ScratchValueData};
+
+use super::ScratchTypes;
 
 #[derive(Debug)]
-pub struct Add {
-    lhs: Box<Expr>,
-    rhs: Box<Expr>,
-}
-
-#[derive(Debug)]
-pub struct Value {
-    val: ScratchValue,
+pub enum Value {
+    Number(i64),
+    String(String),
 }
 
 #[derive(Debug)]
 pub enum Expr {
-    Add(Add),
+    Add { lhs: Box<Expr>, rhs: Box<Expr> },
     Val(Value),
 }
 
@@ -29,7 +26,8 @@ pub struct BlockStmt {
 
 #[derive(Debug)]
 pub struct SetVariable {
-    var: String,
+    name: String,
+    id: String,
     val: Expr,
 }
 
@@ -37,6 +35,7 @@ pub struct SetVariable {
 pub enum Stmt {
     WhenFlagClicked(BlockStmt),
     SetVariable(SetVariable),
+    AddToList(SetVariable),
 }
 
 #[derive(Debug)]
@@ -46,13 +45,12 @@ pub struct Project {
 
 fn block_chain_to_vec(file: &ScratchFile, root_block: ScratchBlock) -> Vec<Stmt> {
     let mut curr_block = &root_block;
+    let mut ret: Vec<Stmt> = vec![];
 
     loop {
         let next = &curr_block.next;
 
-        info!("curr: {:#?} next: {:#?}", curr_block, next);
-        scratch_block_to_statement(file, curr_block.clone());
-        info!("Hi");
+        ret.push(scratch_block_to_statement(file, curr_block.clone()));
 
         if next.is_none() {
             break;
@@ -64,7 +62,43 @@ fn block_chain_to_vec(file: &ScratchFile, root_block: ScratchBlock) -> Vec<Stmt>
             .unwrap();
     }
 
-    vec![]
+    ret
+}
+
+fn scratch_val_data_to_val(data: &ScratchValueData) -> Value {
+    match &data {
+        ScratchValueData::Int(x) => Value::Number(*x),
+        ScratchValueData::String(x) => Value::String(x.to_string()),
+        _ => todo!(),
+    }
+}
+
+fn expr_from_block(file: &ScratchFile, block: ScratchBlock) -> Expr {
+    match block.opcode.as_str() {
+        "operator_add" => Expr::Add {
+            lhs: Box::new(scratch_val_to_expr(file, block.inputs["NUM1"].1.clone())),
+            rhs: Box::new(scratch_val_to_expr(file, block.inputs["NUM2"].1.clone())),
+        },
+        _ => unreachable!(),
+    }
+}
+
+fn scratch_val_to_expr(file: &ScratchFile, val: ScratchValue) -> Expr {
+    let block = match val.1.clone() {
+        ScratchValueData::BlockCall(x) => Some(x),
+        _ => None,
+    };
+
+    info!("{:#?}", val.1);
+    info!("block: {:#?}", block);
+
+    match val.0 {
+        ScratchTypes::Number => Expr::Val(scratch_val_data_to_val(&val.1)),
+        ScratchTypes::String => Expr::Val(scratch_val_data_to_val(&val.1)),
+        ScratchTypes::BlockCall => {
+            expr_from_block(file, file.targets[0].blocks[&block.unwrap()].clone())
+        }
+    }
 }
 
 fn scratch_block_to_statement(file: &ScratchFile, block: ScratchBlock) -> Stmt {
@@ -84,6 +118,19 @@ fn scratch_block_to_statement(file: &ScratchFile, block: ScratchBlock) -> Stmt {
         "event_whenflagclicked" => Stmt::WhenFlagClicked(BlockStmt {
             stmts: block_chain_to_vec(file, next_block.unwrap()),
         }),
+
+        "data_addtolist" => Stmt::AddToList(SetVariable {
+            name: block.fields["LIST"][0].to_string(),
+            val: scratch_val_to_expr(file, block.inputs["ITEM"].1.clone()),
+            id: block.fields["LIST"][1].to_string(),
+        }),
+
+        "data_setvariableto" => Stmt::AddToList(SetVariable {
+            name: block.fields["VARIABLE"][0].to_string(),
+            val: scratch_val_to_expr(file, block.inputs["VALUE"].1.clone()),
+            id: block.fields["VARIABLE"][1].to_string(),
+        }),
+
         x => todo!("{}", x),
     }
 }

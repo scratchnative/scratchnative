@@ -4,12 +4,12 @@
       "isStage": true,
       "name": "Stage",
       "variables": { "`jEk@4|i[#Fk?(8x)AV.-my variable": ["my variable", 2] },
-      "lists": { "(rM-0;Kc{ni^^yg,n(V?": ["my_list", ["1"]] },
+      "lists": { "(rM-0;Kc{ni^^yg,n(V?": ["my_list", ["1", "1"]] },
       "broadcasts": {},
       "blocks": {
         "srDHHoA(}lr)i:xf*HDJ": {
           "opcode": "event_whenflagclicked",
-          "next": "PIghUL]8E,|M^/=7H=|d",
+          "next": "?HBYmUGL,AknR`Ga3t=.",
           "parent": null,
           "inputs": {},
           "fields": {},
@@ -18,12 +18,23 @@
           "x": 545,
           "y": 293
         },
-        "PIghUL]8E,|M^/=7H=|d": {
-          "opcode": "data_addtolist",
+        "?HBYmUGL,AknR`Ga3t=.": {
+          "opcode": "data_setvariableto",
           "next": null,
           "parent": "srDHHoA(}lr)i:xf*HDJ",
-          "inputs": { "ITEM": [1, [10, "1"]] },
-          "fields": { "LIST": ["my_list", "(rM-0;Kc{ni^^yg,n(V?"] },
+          "inputs": { "VALUE": [3, "D||V,]GorsVA^tN-6@nP", [10, ""]] },
+          "fields": {
+            "VARIABLE": ["my variable", "`jEk@4|i[#Fk?(8x)AV.-my variable"]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "D||V,]GorsVA^tN-6@nP": {
+          "opcode": "operator_add",
+          "next": null,
+          "parent": "?HBYmUGL,AknR`Ga3t=.",
+          "inputs": { "NUM1": [1, [4, "1"]], "NUM2": [1, [4, "2"]] },
+          "fields": {},
           "shadow": false,
           "topLevel": false
         }
@@ -56,7 +67,7 @@
       "opcode": "data_listcontents",
       "params": { "LIST": "my_list" },
       "spriteName": null,
-      "value": ["1"],
+      "value": ["1", "1"],
       "width": 0,
       "height": 0,
       "x": 5,
