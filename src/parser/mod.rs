@@ -45,7 +45,7 @@ impl ScratchTypes {
         match value {
             10 => ScratchTypes::String,
             4 => ScratchTypes::Number,
-            3 => ScratchTypes::BlockCall,
+            2 | 3 => ScratchTypes::BlockCall,
             12 => ScratchTypes::Variable,
             _ => todo!("ScratchType {}", value),
         }
@@ -106,7 +106,7 @@ fn scratch_variable_decl_of_json(vec: Vec<serde_json::Value>) -> ScratchVariable
         (_, _, _) => unreachable!(),
     };
 
-    ScratchVariableDecl(vec[0].to_string(), var_type)
+    ScratchVariableDecl(vec[0].as_str().unwrap().to_string(), var_type)
 }
 
 fn scratch_value_of_array(array: Vec<serde_json::Value>) -> ScratchValue {

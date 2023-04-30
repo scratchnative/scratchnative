@@ -52,6 +52,12 @@ pub enum Expr {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
+
+    SingleOp {
+        op: OpType,
+        expr: Box<Expr>,
+    },
+
     Val(Value),
     Var(String),
 }
@@ -74,6 +80,7 @@ pub enum Stmt {
 #[derive(Debug)]
 pub struct Project {
     pub body: Stmt,
+    pub variables: Vec<String>,
 }
 
 fn block_chain_to_vec(file: &ScratchFile, root_block: ScratchBlock) -> Vec<Stmt> {
@@ -108,12 +115,31 @@ fn scratch_val_data_to_val(data: &ScratchValueData) -> Value {
 
 fn expr_from_operator(file: &ScratchFile, block: ScratchBlock, operator: &str) -> Expr {
     match operator {
-        "add" | "subtract" | "multiply" | "divide" | "gt" | "lt" | "and" | "or" | "not"
-        | "random" | "mod" => Expr::BinOp {
-            lhs: Box::new(scratch_val_to_expr(file, block.inputs["NUM1"].1.clone())),
-            rhs: Box::new(scratch_val_to_expr(file, block.inputs["NUM2"].1.clone())),
+        "add" | "subtract" | "multiply" | "divide" | "and" | "or" | "random" | "mod" => {
+            Expr::BinOp {
+                lhs: Box::new(scratch_val_to_expr(file, block.inputs["NUM1"].1.clone())),
+                rhs: Box::new(scratch_val_to_expr(file, block.inputs["NUM2"].1.clone())),
+                op: OpType::from_str(operator),
+            }
+        }
+
+        "gt" | "lt" | "equals" => Expr::BinOp {
+            lhs: Box::new(scratch_val_to_expr(
+                file,
+                block.inputs["OPERAND1"].1.clone(),
+            )),
+            rhs: Box::new(scratch_val_to_expr(
+                file,
+                block.inputs["OPERAND2"].1.clone(),
+            )),
             op: OpType::from_str(operator),
         },
+
+        "not" => Expr::SingleOp {
+            expr: Box::new(scratch_val_to_expr(file, block.inputs["OPERAND"].1.clone())),
+            op: OpType::from_str(operator),
+        },
+
         _ => todo!("{}", operator),
     }
 }
@@ -192,13 +218,20 @@ pub fn scratch_file_to_project(file: &ScratchFile) -> Project {
     let mut root_block: Option<ScratchBlock> = None;
 
     for block in file.targets[0].blocks.iter() {
-        if block.1.parent.is_none() && block.1.opcode != "procedures_definition" {
+        if block.1.parent.is_none() && block.1.opcode != *"procedures_definition" {
             root_block = Some(block.1.clone());
             break;
         }
     }
 
+    let mut vars: Vec<String> = vec![];
+
+    for var in &file.targets[0].variables {
+        vars.push(var.1 .0.to_string());
+    }
+
     Project {
         body: scratch_file_to_body(file, root_block.unwrap()),
+        variables: vars,
     }
 }
