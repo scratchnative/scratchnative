@@ -1,7 +1,9 @@
 use colored::*;
 use std::collections::HashMap;
 
+pub use self::ast::*;
 pub use self::json::*;
+mod ast;
 mod json;
 
 #[derive(Debug)]
@@ -21,7 +23,7 @@ pub enum ScratchInitializer {
 //  "variables": { "`jEk@4|i[#Fk?(8x)AV.-my variable": ["my variable", 0] },
 pub struct ScratchVariableDecl(String, ScratchInitializer);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ScratchValue {
     Int(i64),
     String(String),
@@ -30,15 +32,15 @@ pub enum ScratchValue {
 const SCRATCH_STRING: i64 = 10;
 const SCRATCH_NUMBER: i64 = 4;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 //  [10, "1"]
 pub struct ScratchValueDecl(i64, ScratchValue);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 // [1, [10, "1"]]
 pub struct ScratchInput(i64, ScratchValueDecl);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ScratchBlock {
     pub opcode: String,
     pub next: Option<String>,

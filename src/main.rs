@@ -67,5 +67,7 @@ fn main() {
         parser::show_info(&scratch_file);
     }
 
-    codegen::codegen_file(scratch_file);
+    info!("{:#?}", parser::scratch_file_to_project(&scratch_file));
+
+    // codegen::codegen_file(scratch_file);
 }
