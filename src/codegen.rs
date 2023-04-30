@@ -1,35 +1,60 @@
-use std::collections::HashMap;
-
 use crate::parser::*;
-use log::*;
 
-fn iterate_through_blocks(root_block: &ScratchBlock, blocks: &HashMap<String, ScratchBlock>) {
-    let mut curr_block = root_block;
+fn codegen_expr(expr: Expr) -> String {
+    let mut str: String = "".to_string();
 
-    loop {
-        let next = &curr_block.next;
+    match expr {
+        Expr::BinOp { op, lhs, rhs } => match op {
+            OpType::Add => {
+                str.push_str(&format!("{} + {}", codegen_expr(*lhs), codegen_expr(*rhs)))
+            }
+            _ => todo!("{:#?}", op),
+        },
 
-        trace!("Compiling {:#?}", curr_block);
+        Expr::Val(x) => match x {
+            Value::Number(x) => str.push_str(&format!("{}", x)),
+            Value::String(x) => str.push_str(&format!("\"{}\"", x)),
+        },
 
-        if next.is_none() {
-            break;
-        }
-
-        curr_block = blocks.get(&next.clone().unwrap().to_string()).unwrap();
+        Expr::Var(name) => str.push_str(&format!("{}", name.replace(' ', "_"))),
     }
+
+    str
 }
 
-pub fn codegen_file(file: ScratchFile) {
-    let mut root_block: Option<&ScratchBlock> = None;
+fn codegen_stmt(statement: Stmt) -> String {
+    let mut str: String = "".to_string();
 
-    for block in file.targets[0].blocks.iter() {
-        if block.1.parent.is_none() && block.1.opcode != "procedures_definition" {
-            root_block = Some(block.1);
-            break;
+    match statement {
+        Stmt::WhenFlagClicked(x) => {
+            for stmt in x.stmts {
+                str.push_str(&codegen_stmt(stmt).to_string());
+            }
         }
+
+        Stmt::SetVariable { name, id: _, val } => {
+            str.push_str(&format!(
+                "{} = ({});\n",
+                name.replace(' ', "_"),
+                codegen_expr(val)
+            ));
+        }
+
+        _ => todo!("{:#?}", statement),
     }
 
-    debug!("Root block is {:#?}", root_block);
+    str
+}
 
-    iterate_through_blocks(root_block.unwrap(), &file.targets[0].blocks);
+pub fn codegen_project(project: Project) -> String {
+    let mut str = r#"#include <scratchnative/runtime.hpp>
+int main(void)
+{
+"#
+    .to_string();
+
+    str.push_str(&codegen_stmt(project.body));
+    str.push_str("\nreturn 0;\n\n}");
+
+    str
 }

@@ -1,5 +1,4 @@
 use colored::*;
-use log::*;
 use std::collections::HashMap;
 
 pub use self::ast::*;
@@ -18,6 +17,7 @@ pub struct ScratchMetadata {
 pub enum ScratchInitializer {
     List(Vec<()>),
     Int(i64),
+    String(String),
 }
 
 #[derive(Debug)]
@@ -29,6 +29,7 @@ pub enum ScratchValueData {
     Int(i64),
     String(String),
     BlockCall(String),
+    Variable(String),
 }
 
 #[derive(Debug, Clone)]
@@ -36,6 +37,7 @@ pub enum ScratchTypes {
     String = 10,
     Number = 4,
     BlockCall = 3,
+    Variable = 12,
 }
 
 impl ScratchTypes {
@@ -44,7 +46,8 @@ impl ScratchTypes {
             10 => ScratchTypes::String,
             4 => ScratchTypes::Number,
             3 => ScratchTypes::BlockCall,
-            _ => panic!("Unknown value: {}", value),
+            12 => ScratchTypes::Variable,
+            _ => todo!("ScratchType {}", value),
         }
     }
 }
@@ -96,10 +99,11 @@ pub fn show_info(file: &ScratchFile) {
 }
 
 fn scratch_variable_decl_of_json(vec: Vec<serde_json::Value>) -> ScratchVariableDecl {
-    let var_type = match (vec[1].is_array(), vec[1].is_i64()) {
-        (true, false) => ScratchInitializer::List(vec![]),
-        (false, true) => ScratchInitializer::Int(0),
-        (_, _) => unreachable!(),
+    let var_type = match (vec[1].is_array(), vec[1].is_i64(), vec[1].is_string()) {
+        (true, false, false) => ScratchInitializer::List(vec![]),
+        (false, true, false) => ScratchInitializer::Int(vec[1].as_i64().unwrap()),
+        (false, false, true) => ScratchInitializer::String(vec[1].as_str().unwrap().to_string()),
+        (_, _, _) => unreachable!(),
     };
 
     ScratchVariableDecl(vec[0].to_string(), var_type)
@@ -114,6 +118,9 @@ fn scratch_value_of_array(array: Vec<serde_json::Value>) -> ScratchValue {
         ScratchTypes::String => ScratchValueData::String(val),
         ScratchTypes::Number => ScratchValueData::Int(val.parse::<i64>().unwrap()),
         ScratchTypes::BlockCall => ScratchValueData::BlockCall(val),
+        ScratchTypes::Variable => {
+            ScratchValueData::Variable(array[1].as_str().unwrap().to_string())
+        }
     };
 
     ScratchValue(val_type, data)

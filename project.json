@@ -3,7 +3,10 @@
     {
       "isStage": true,
       "name": "Stage",
-      "variables": { "`jEk@4|i[#Fk?(8x)AV.-my variable": ["my variable", 2] },
+      "variables": {
+        "`jEk@4|i[#Fk?(8x)AV.-my variable": ["my variable", "apple banana"],
+        "rL@]$dvN.P]Y%qX*{Yh{": ["my other variable", 100]
+      },
       "lists": { "(rM-0;Kc{ni^^yg,n(V?": ["my_list", ["1", "1"]] },
       "broadcasts": {},
       "blocks": {
@@ -20,20 +23,47 @@
         },
         "?HBYmUGL,AknR`Ga3t=.": {
           "opcode": "data_setvariableto",
-          "next": null,
+          "next": "=Vx8k$_Qhm/PsKQ5P0eN",
           "parent": "srDHHoA(}lr)i:xf*HDJ",
-          "inputs": { "VALUE": [3, "D||V,]GorsVA^tN-6@nP", [10, ""]] },
+          "inputs": { "VALUE": [3, "D+cfG%[_B+NvVffDfo0o", [10, ""]] },
           "fields": {
             "VARIABLE": ["my variable", "`jEk@4|i[#Fk?(8x)AV.-my variable"]
           },
           "shadow": false,
           "topLevel": false
         },
-        "D||V,]GorsVA^tN-6@nP": {
+        "D+cfG%[_B+NvVffDfo0o": {
           "opcode": "operator_add",
           "next": null,
           "parent": "?HBYmUGL,AknR`Ga3t=.",
           "inputs": { "NUM1": [1, [4, "1"]], "NUM2": [1, [4, "2"]] },
+          "fields": {},
+          "shadow": false,
+          "topLevel": false
+        },
+        "=Vx8k$_Qhm/PsKQ5P0eN": {
+          "opcode": "data_setvariableto",
+          "next": null,
+          "parent": "?HBYmUGL,AknR`Ga3t=.",
+          "inputs": { "VALUE": [3, "jHCU%yq}Vc04wU*?x|6u", [10, "0"]] },
+          "fields": {
+            "VARIABLE": ["my other variable", "rL@]$dvN.P]Y%qX*{Yh{"]
+          },
+          "shadow": false,
+          "topLevel": false
+        },
+        "jHCU%yq}Vc04wU*?x|6u": {
+          "opcode": "operator_add",
+          "next": null,
+          "parent": "=Vx8k$_Qhm/PsKQ5P0eN",
+          "inputs": {
+            "NUM1": [
+              3,
+              [12, "my variable", "`jEk@4|i[#Fk?(8x)AV.-my variable"],
+              [4, ""]
+            ],
+            "NUM2": [1, [4, "3"]]
+          },
           "fields": {},
           "shadow": false,
           "topLevel": false
@@ -73,6 +103,22 @@
       "x": 5,
       "y": 6,
       "visible": true
+    },
+    {
+      "id": "rL@]$dvN.P]Y%qX*{Yh{",
+      "mode": "slider",
+      "opcode": "data_variable",
+      "params": { "VARIABLE": "my other variable" },
+      "spriteName": null,
+      "value": 100,
+      "width": 0,
+      "height": 0,
+      "x": 5,
+      "y": 212,
+      "visible": true,
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "isDiscrete": true
     }
   ],
   "extensions": [],

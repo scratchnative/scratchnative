@@ -1,5 +1,3 @@
-use log::*;
-
 use crate::parser::{ScratchBlock, ScratchFile, ScratchValue, ScratchValueData};
 
 use super::ScratchTypes;
@@ -11,9 +9,51 @@ pub enum Value {
 }
 
 #[derive(Debug)]
+pub enum OpType {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Equals,
+    GreaterThan,
+    LessThan,
+    And,
+    Or,
+    Not,
+    Random,
+    Modulo,
+}
+
+impl OpType {
+    fn from_str(str: &str) -> OpType {
+        match str {
+            "add" => OpType::Add,
+            "subtract" => OpType::Subtract,
+            "multiply" => OpType::Multiply,
+            "divide" => OpType::Divide,
+            "equals" => OpType::Equals,
+            "gt" => OpType::GreaterThan,
+            "lt" => OpType::LessThan,
+            "and" => OpType::And,
+            "or" => OpType::Or,
+            "not" => OpType::Not,
+            "random" => OpType::Random,
+            "mod" => OpType::Modulo,
+
+            _ => todo!("{}", str),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum Expr {
-    Add { lhs: Box<Expr>, rhs: Box<Expr> },
+    BinOp {
+        op: OpType,
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
+    },
     Val(Value),
+    Var(String),
 }
 
 #[derive(Debug)]
@@ -21,26 +61,19 @@ pub struct EmptyStmt {}
 
 #[derive(Debug)]
 pub struct BlockStmt {
-    stmts: Vec<Stmt>,
-}
-
-#[derive(Debug)]
-pub struct SetVariable {
-    name: String,
-    id: String,
-    val: Expr,
+    pub stmts: Vec<Stmt>,
 }
 
 #[derive(Debug)]
 pub enum Stmt {
     WhenFlagClicked(BlockStmt),
-    SetVariable(SetVariable),
-    AddToList(SetVariable),
+    SetVariable { name: String, id: String, val: Expr },
+    AddToList { name: String, id: String, val: Expr },
 }
 
 #[derive(Debug)]
 pub struct Project {
-    body: Stmt,
+    pub body: Stmt,
 }
 
 fn block_chain_to_vec(file: &ScratchFile, root_block: ScratchBlock) -> Vec<Stmt> {
@@ -73,13 +106,24 @@ fn scratch_val_data_to_val(data: &ScratchValueData) -> Value {
     }
 }
 
-fn expr_from_block(file: &ScratchFile, block: ScratchBlock) -> Expr {
-    match block.opcode.as_str() {
-        "operator_add" => Expr::Add {
+fn expr_from_operator(file: &ScratchFile, block: ScratchBlock, operator: &str) -> Expr {
+    match operator {
+        "add" | "subtract" | "multiply" | "divide" | "gt" | "lt" | "and" | "or" | "not"
+        | "random" | "mod" => Expr::BinOp {
             lhs: Box::new(scratch_val_to_expr(file, block.inputs["NUM1"].1.clone())),
             rhs: Box::new(scratch_val_to_expr(file, block.inputs["NUM2"].1.clone())),
+            op: OpType::from_str(operator),
         },
-        _ => unreachable!(),
+        _ => todo!("{}", operator),
+    }
+}
+
+fn expr_from_block(file: &ScratchFile, block: ScratchBlock) -> Expr {
+    let str_array: Vec<&str> = block.opcode.as_str().split('_').collect();
+
+    match str_array[0] {
+        "operator" => expr_from_operator(file, block.clone(), str_array[1]),
+        _ => todo!("{}", str_array[0]),
     }
 }
 
@@ -89,14 +133,19 @@ fn scratch_val_to_expr(file: &ScratchFile, val: ScratchValue) -> Expr {
         _ => None,
     };
 
-    info!("{:#?}", val.1);
-    info!("block: {:#?}", block);
-
     match val.0 {
         ScratchTypes::Number => Expr::Val(scratch_val_data_to_val(&val.1)),
         ScratchTypes::String => Expr::Val(scratch_val_data_to_val(&val.1)),
         ScratchTypes::BlockCall => {
             expr_from_block(file, file.targets[0].blocks[&block.unwrap()].clone())
+        }
+
+        ScratchTypes::Variable => {
+            if let ScratchValueData::Variable(x) = val.1 {
+                Expr::Var(x)
+            } else {
+                unreachable!()
+            }
         }
     }
 }
@@ -119,17 +168,17 @@ fn scratch_block_to_statement(file: &ScratchFile, block: ScratchBlock) -> Stmt {
             stmts: block_chain_to_vec(file, next_block.unwrap()),
         }),
 
-        "data_addtolist" => Stmt::AddToList(SetVariable {
+        "data_addtolist" => Stmt::AddToList {
             name: block.fields["LIST"][0].to_string(),
             val: scratch_val_to_expr(file, block.inputs["ITEM"].1.clone()),
             id: block.fields["LIST"][1].to_string(),
-        }),
+        },
 
-        "data_setvariableto" => Stmt::AddToList(SetVariable {
+        "data_setvariableto" => Stmt::SetVariable {
             name: block.fields["VARIABLE"][0].to_string(),
             val: scratch_val_to_expr(file, block.inputs["VALUE"].1.clone()),
             id: block.fields["VARIABLE"][1].to_string(),
-        }),
+        },
 
         x => todo!("{}", x),
     }
