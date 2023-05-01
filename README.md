@@ -9,7 +9,7 @@ Scratchnative is an ongoing project to compile Scratch3 programs to native execu
 Here's how Scratchnative is able to compile Scratch3 projects:
 
 1. It serializes the `project.json` file contained in the `.sb3` Scratch file (which is a zip) using serde
-2. It builds an abstract syntax tree (AST) akin to any programming language
+2. It builds an abstract syntax tree (AST) akin to any programming language's AST
 3. It outputs C++ code by iterating through the AST
 
 Eventually, I will write documentation on the `project.json` file format as the current docs are quite vague and unclear.
