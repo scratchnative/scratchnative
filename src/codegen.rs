@@ -31,7 +31,7 @@ fn codegen_expr(expr: Expr) -> String {
             | OpType::LessThan
             | OpType::Equals
             | OpType::Or => str.push_str(&format!(
-                "{} {} {}",
+                "({}) {} ({})",
                 codegen_expr(*lhs),
                 bin_op_to_str(op),
                 codegen_expr(*rhs)
@@ -74,6 +74,54 @@ fn codegen_stmt(statement: Stmt) -> String {
             ));
         }
 
+        Stmt::If { condition, block } => {
+            str.push_str(&format!("if ({}) {{\n", codegen_expr(condition)));
+
+            for stmt in block.stmts {
+                str.push_str(&codegen_stmt(stmt).to_string());
+            }
+            str.push_str("}\n");
+        }
+
+        Stmt::IfElse {
+            condition,
+            if_block,
+            else_block,
+        } => {
+            str.push_str(&format!("if ({}) {{\n", codegen_expr(condition)));
+
+            fn gen_block(block: BlockStmt, str: &mut String) {
+                for stmt in block.stmts {
+                    str.push_str(&codegen_stmt(stmt).to_string())
+                }
+            }
+
+            gen_block(if_block, &mut str);
+
+            str.push_str("} else {\n");
+
+            gen_block(else_block, &mut str);
+
+            str.push_str("}\n");
+        }
+
+        Stmt::Repeat { times, block } => {
+            str.push_str(&format!("for (auto _ = {}; _--;){{\n", codegen_expr(times)));
+
+            for stmt in block.stmts {
+                str.push_str(&codegen_stmt(stmt).to_string());
+            }
+            str.push_str("}\n");
+        }
+
+        Stmt::RepeatUntil { condition, block } => {
+            str.push_str(&format!("while(!({})) {{\n", codegen_expr(condition)));
+            for stmt in block.stmts {
+                str.push_str(&codegen_stmt(stmt).to_string());
+            }
+            str.push_str("}\n");
+        }
+
         _ => todo!("{:#?}", statement),
     }
 
@@ -81,14 +129,14 @@ fn codegen_stmt(statement: Stmt) -> String {
 }
 
 pub fn codegen_project(project: Project) -> String {
-    let mut str = r#"#include <scratchnative/runtime.hpp>
+    let mut str = r#"#include <runtime/scratchnative.hpp>
 int main(void)
 {
 "#
     .to_string();
 
     for var in project.variables {
-        str.push_str(&format!("ScratchValue {};\n", var.replace(' ', "_")));
+        str.push_str(&format!("ScratchValue {} = {{}};\n", var.replace(' ', "_")));
     }
 
     str.push_str(&codegen_stmt(project.body));

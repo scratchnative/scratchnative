@@ -32,7 +32,7 @@ pub enum ScratchValueData {
     Variable(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ScratchTypes {
     String = 10,
     Number = 4,
@@ -44,7 +44,7 @@ impl ScratchTypes {
     fn from_i64(value: i64) -> ScratchTypes {
         match value {
             10 => ScratchTypes::String,
-            4 => ScratchTypes::Number,
+            4 | 6 => ScratchTypes::Number,
             2 | 3 => ScratchTypes::BlockCall,
             12 => ScratchTypes::Variable,
             _ => todo!("ScratchType {}", value),
@@ -110,9 +110,17 @@ fn scratch_variable_decl_of_json(vec: Vec<serde_json::Value>) -> ScratchVariable
 }
 
 fn scratch_value_of_array(array: Vec<serde_json::Value>) -> ScratchValue {
-    let val_type: ScratchTypes = ScratchTypes::from_i64(array[0].as_i64().unwrap());
+    let mut val_type: ScratchTypes = ScratchTypes::from_i64(array[0].as_i64().unwrap());
 
     let val = array[1].as_str().unwrap().to_string();
+
+    if val_type == ScratchTypes::String && val.parse::<i64>().is_ok() {
+        val_type = ScratchTypes::Number;
+    }
+
+    if val.is_empty() {
+        return ScratchValue(ScratchTypes::Number, ScratchValueData::Int(0));
+    }
 
     let data: ScratchValueData = match val_type {
         ScratchTypes::String => ScratchValueData::String(val),
@@ -150,8 +158,10 @@ fn scratch_block_of_json(block: &JsonScratchBlock) -> ScratchBlock {
         let array = input.1.as_array().unwrap().to_vec();
         let val: ScratchValue = if array[1].is_string() {
             scratch_value_of_array(array.clone())
-        } else {
+        } else if !array[1].is_null() {
             scratch_value_of_array(array[1].as_array().unwrap().to_vec())
+        } else {
+            continue;
         };
 
         let _input = ScratchInput(array[0].as_i64().unwrap(), val);
@@ -188,6 +198,13 @@ fn scratch_target_of_json(target: &JsonScratchTarget) -> ScratchTarget {
     }
 
     for block in &target.blocks {
+        if block.1.next.is_null()
+            && block.1.parent.is_null()
+            && block.1.opcode != "procedures_definition"
+        {
+            continue;
+        }
+
         blocks.insert(block.0.to_string(), scratch_block_of_json(block.1));
     }
 

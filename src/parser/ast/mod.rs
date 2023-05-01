@@ -1,4 +1,11 @@
+use log::info;
+
 use crate::parser::{ScratchBlock, ScratchFile, ScratchValue, ScratchValueData};
+
+mod control;
+mod data;
+mod event;
+mod operator;
 
 use super::ScratchTypes;
 
@@ -73,8 +80,35 @@ pub struct BlockStmt {
 #[derive(Debug)]
 pub enum Stmt {
     WhenFlagClicked(BlockStmt),
-    SetVariable { name: String, id: String, val: Expr },
-    AddToList { name: String, id: String, val: Expr },
+    SetVariable {
+        name: String,
+        id: String,
+        val: Expr,
+    },
+    AddToList {
+        name: String,
+        id: String,
+        val: Expr,
+    },
+    Repeat {
+        times: Expr,
+        block: BlockStmt,
+    },
+    RepeatUntil {
+        condition: Expr,
+        block: BlockStmt,
+    },
+    If {
+        condition: Expr,
+        block: BlockStmt,
+    },
+    IfElse {
+        condition: Expr,
+        if_block: BlockStmt,
+        else_block: BlockStmt,
+    },
+
+    Empty,
 }
 
 #[derive(Debug)]
@@ -89,6 +123,8 @@ fn block_chain_to_vec(file: &ScratchFile, root_block: ScratchBlock) -> Vec<Stmt>
 
     loop {
         let next = &curr_block.next;
+
+        info!("curr_block is {:#?}", curr_block);
 
         ret.push(scratch_block_to_statement(file, curr_block.clone()));
 
@@ -113,42 +149,11 @@ fn scratch_val_data_to_val(data: &ScratchValueData) -> Value {
     }
 }
 
-fn expr_from_operator(file: &ScratchFile, block: ScratchBlock, operator: &str) -> Expr {
-    match operator {
-        "add" | "subtract" | "multiply" | "divide" | "and" | "or" | "random" | "mod" => {
-            Expr::BinOp {
-                lhs: Box::new(scratch_val_to_expr(file, block.inputs["NUM1"].1.clone())),
-                rhs: Box::new(scratch_val_to_expr(file, block.inputs["NUM2"].1.clone())),
-                op: OpType::from_str(operator),
-            }
-        }
-
-        "gt" | "lt" | "equals" => Expr::BinOp {
-            lhs: Box::new(scratch_val_to_expr(
-                file,
-                block.inputs["OPERAND1"].1.clone(),
-            )),
-            rhs: Box::new(scratch_val_to_expr(
-                file,
-                block.inputs["OPERAND2"].1.clone(),
-            )),
-            op: OpType::from_str(operator),
-        },
-
-        "not" => Expr::SingleOp {
-            expr: Box::new(scratch_val_to_expr(file, block.inputs["OPERAND"].1.clone())),
-            op: OpType::from_str(operator),
-        },
-
-        _ => todo!("{}", operator),
-    }
-}
-
 fn expr_from_block(file: &ScratchFile, block: ScratchBlock) -> Expr {
-    let str_array: Vec<&str> = block.opcode.as_str().split('_').collect();
+    let str_array: Vec<&str> = block.opcode.as_str().splitn(2, '_').collect();
 
     match str_array[0] {
-        "operator" => expr_from_operator(file, block.clone(), str_array[1]),
+        "operator" => operator::expr_from_operator(file, block.clone(), str_array[1]),
         _ => todo!("{}", str_array[0]),
     }
 }
@@ -189,22 +194,18 @@ fn scratch_block_to_statement(file: &ScratchFile, block: ScratchBlock) -> Stmt {
         );
     }
 
-    match block.opcode.as_str() {
-        "event_whenflagclicked" => Stmt::WhenFlagClicked(BlockStmt {
-            stmts: block_chain_to_vec(file, next_block.unwrap()),
-        }),
+    let str_array: Vec<&str> = block.opcode.as_str().splitn(2, '_').collect();
 
-        "data_addtolist" => Stmt::AddToList {
-            name: block.fields["LIST"][0].to_string(),
-            val: scratch_val_to_expr(file, block.inputs["ITEM"].1.clone()),
-            id: block.fields["LIST"][1].to_string(),
-        },
+    match str_array[0] {
+        "event" => {
+            event::event_to_statement(file, block.clone(), next_block, str_array[1].to_string())
+        }
 
-        "data_setvariableto" => Stmt::SetVariable {
-            name: block.fields["VARIABLE"][0].to_string(),
-            val: scratch_val_to_expr(file, block.inputs["VALUE"].1.clone()),
-            id: block.fields["VARIABLE"][1].to_string(),
-        },
+        "data" => data::data_to_statement(file, block.clone(), str_array[1].to_string()),
+
+        "control" => {
+            control::control_to_statement(file, block.clone(), next_block, str_array[1].to_string())
+        }
 
         x => todo!("{}", x),
     }
