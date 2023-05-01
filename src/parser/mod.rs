@@ -1,4 +1,5 @@
 use colored::*;
+use log::info;
 use std::collections::HashMap;
 
 pub use self::ast::*;
@@ -112,7 +113,13 @@ fn scratch_variable_decl_of_json(vec: Vec<serde_json::Value>) -> ScratchVariable
 fn scratch_value_of_array(array: Vec<serde_json::Value>) -> ScratchValue {
     let mut val_type: ScratchTypes = ScratchTypes::from_i64(array[0].as_i64().unwrap());
 
-    let val = array[1].as_str().unwrap().to_string();
+    info!("{:#?}", array);
+
+    let val = match &array[1] {
+        serde_json::Value::String(x) => x.to_string(),
+        serde_json::Value::Number(x) => x.to_string(),
+        _ => panic!("Expected number or string, not {:#?}", array[1]),
+    };
 
     if val_type == ScratchTypes::String && val.parse::<i64>().is_ok() {
         val_type = ScratchTypes::Number;

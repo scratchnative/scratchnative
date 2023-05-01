@@ -65,6 +65,11 @@ pub enum Expr {
         expr: Box<Expr>,
     },
 
+    ItemOf {
+        list_name: String,
+        index: Box<Expr>,
+    },
+
     Val(Value),
     Var(String),
 }
@@ -90,6 +95,11 @@ pub enum Stmt {
         id: String,
         val: Expr,
     },
+
+    DeleteAllOfList {
+        name: String,
+    },
+
     Repeat {
         times: Expr,
         block: BlockStmt,
@@ -108,6 +118,11 @@ pub enum Stmt {
         else_block: BlockStmt,
     },
 
+    ChangeBy {
+        var_name: String,
+        inc: Expr,
+    },
+
     Empty,
 }
 
@@ -115,6 +130,7 @@ pub enum Stmt {
 pub struct Project {
     pub body: Stmt,
     pub variables: Vec<String>,
+    pub lists: Vec<String>,
 }
 
 fn block_chain_to_vec(file: &ScratchFile, root_block: ScratchBlock) -> Vec<Stmt> {
@@ -154,7 +170,8 @@ fn expr_from_block(file: &ScratchFile, block: ScratchBlock) -> Expr {
 
     match str_array[0] {
         "operator" => operator::expr_from_operator(file, block.clone(), str_array[1]),
-        _ => todo!("{}", str_array[0]),
+        "data" => data::expr_from_data(file, block.clone(), str_array[1]),
+        _ => todo!("{}", block.opcode.as_str()),
     }
 }
 
@@ -207,7 +224,7 @@ fn scratch_block_to_statement(file: &ScratchFile, block: ScratchBlock) -> Stmt {
             control::control_to_statement(file, block.clone(), next_block, str_array[1].to_string())
         }
 
-        x => todo!("{}", x),
+        _ => todo!("{}", block.opcode.as_str()),
     }
 }
 
@@ -226,13 +243,19 @@ pub fn scratch_file_to_project(file: &ScratchFile) -> Project {
     }
 
     let mut vars: Vec<String> = vec![];
+    let mut lists: Vec<String> = vec![];
 
     for var in &file.targets[0].variables {
         vars.push(var.1 .0.to_string());
     }
 
+    for list in &file.targets[0].lists {
+        lists.push(list.1 .0.to_string());
+    }
+
     Project {
         body: scratch_file_to_body(file, root_block.unwrap()),
         variables: vars,
+        lists,
     }
 }

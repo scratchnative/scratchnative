@@ -12,6 +12,7 @@ fn bin_op_to_str(op: OpType) -> String {
         OpType::Multiply => "*",
         OpType::Not => "!",
         OpType::Or => "||",
+        OpType::Subtract => "-",
         _ => todo!("{:#?}", op),
     }
     .to_string()
@@ -50,6 +51,11 @@ fn codegen_expr(expr: Expr) -> String {
             Value::String(x) => str.push_str(&format!("\"{}\"", x)),
         },
 
+        Expr::ItemOf { list_name, index } => str.push_str(&format!(
+            "{}[static_cast<int>(({}-1).get<double>())]",
+            list_name.replace(' ', "_"),
+            codegen_expr(*index)
+        )),
         Expr::Var(name) => str.push_str(&format!("{}", name.replace(' ', "_"))),
     }
 
@@ -122,6 +128,21 @@ fn codegen_stmt(statement: Stmt) -> String {
             str.push_str("}\n");
         }
 
+        Stmt::ChangeBy { var_name, inc } => str.push_str(&format!(
+            "{} += {};",
+            var_name.replace(' ', "_"),
+            codegen_expr(inc)
+        )),
+
+        Stmt::DeleteAllOfList { name } => {
+            str.push_str(&format!("{}.clear();", name.replace(' ', "_")))
+        }
+
+        Stmt::AddToList { name, val, .. } => str.push_str(&format!(
+            "{}.push_back({});",
+            name.replace(' ', "_"),
+            codegen_expr(val)
+        )),
         _ => todo!("{:#?}", statement),
     }
 
@@ -137,6 +158,10 @@ int main(void)
 
     for var in project.variables {
         str.push_str(&format!("ScratchValue {} = {{}};\n", var.replace(' ', "_")));
+    }
+
+    for list in project.lists {
+        str.push_str(&format!("ScratchList {} = {{}};\n", list.replace(' ', "_")));
     }
 
     str.push_str(&codegen_stmt(project.body));
