@@ -41,7 +41,6 @@ public:
   OP(/);
 
   ScratchValue operator+=(ScratchValue rhs) {
-
     if (_type == STRING) {
       _type = NUMBER;
       _value = 0.0;

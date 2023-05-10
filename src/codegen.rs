@@ -56,7 +56,8 @@ fn codegen_expr(expr: Expr) -> String {
             list_name.replace(' ', "_"),
             codegen_expr(*index)
         )),
-        Expr::Var(name) => str.push_str(&format!("{}", name.replace(' ', "_"))),
+
+        Expr::Var(name) | Expr::Param(name) => str.push_str(&format!("{}", name.replace(' ', "_"))),
     }
 
     str
@@ -64,6 +65,12 @@ fn codegen_expr(expr: Expr) -> String {
 
 fn codegen_stmt(statement: Stmt) -> String {
     let mut str: String = "".to_string();
+
+    fn gen_block(block: BlockStmt, str: &mut String) {
+        for stmt in block.stmts {
+            str.push_str(&codegen_stmt(stmt).to_string())
+        }
+    }
 
     match statement {
         Stmt::WhenFlagClicked(x) => {
@@ -83,9 +90,8 @@ fn codegen_stmt(statement: Stmt) -> String {
         Stmt::If { condition, block } => {
             str.push_str(&format!("if ({}) {{\n", codegen_expr(condition)));
 
-            for stmt in block.stmts {
-                str.push_str(&codegen_stmt(stmt).to_string());
-            }
+            gen_block(block, &mut str);
+
             str.push_str("}\n");
         }
 
@@ -95,12 +101,6 @@ fn codegen_stmt(statement: Stmt) -> String {
             else_block,
         } => {
             str.push_str(&format!("if ({}) {{\n", codegen_expr(condition)));
-
-            fn gen_block(block: BlockStmt, str: &mut String) {
-                for stmt in block.stmts {
-                    str.push_str(&codegen_stmt(stmt).to_string())
-                }
-            }
 
             gen_block(if_block, &mut str);
 
@@ -143,6 +143,34 @@ fn codegen_stmt(statement: Stmt) -> String {
             name.replace(' ', "_"),
             codegen_expr(val)
         )),
+
+        Stmt::ProcedureCall { proc, params } => str.push_str(&format!(
+            "{}({});",
+            proc,
+            params
+                .iter()
+                .map(|x| codegen_expr(x.clone()))
+                .collect::<Vec<_>>()
+                .join(",")
+        )),
+
+        Stmt::ProcedureDefinition { prototype, body } => {
+            str.push_str(&format!(
+                "auto {} = [&]({}) {{",
+                prototype.name,
+                prototype
+                    .param_order
+                    .iter()
+                    .map(|x| (format!("ScratchValue {}", x)))
+                    .collect::<Vec<_>>()
+                    .join(","),
+            ));
+
+            gen_block(body, &mut str);
+
+            str.push_str("};");
+        }
+
         _ => todo!("{:#?}", statement),
     }
 
@@ -162,6 +190,10 @@ int main(void)
 
     for list in project.lists {
         str.push_str(&format!("ScratchList {} = {{}};\n", list.replace(' ', "_")));
+    }
+
+    for proc in project.procedures {
+        str.push_str(&codegen_stmt(proc));
     }
 
     str.push_str(&codegen_stmt(project.body));

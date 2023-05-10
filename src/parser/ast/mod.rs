@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use log::info;
 
 use crate::parser::{ScratchBlock, ScratchFile, ScratchValue, ScratchValueData};
@@ -6,16 +8,17 @@ mod control;
 mod data;
 mod event;
 mod operator;
+mod procedures;
 
 use super::ScratchTypes;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Value {
     Number(i64),
     String(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum OpType {
     Add,
     Subtract,
@@ -52,7 +55,7 @@ impl OpType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     BinOp {
         op: OpType,
@@ -72,6 +75,7 @@ pub enum Expr {
 
     Val(Value),
     Var(String),
+    Param(String),
 }
 
 #[derive(Debug)]
@@ -80,6 +84,14 @@ pub struct EmptyStmt {}
 #[derive(Debug)]
 pub struct BlockStmt {
     pub stmts: Vec<Stmt>,
+}
+
+#[derive(Debug)]
+pub struct ProcedurePrototype {
+    // id: name
+    pub params: HashMap<String, String>,
+    pub param_order: Vec<String>,
+    pub name: String,
 }
 
 #[derive(Debug)]
@@ -123,6 +135,15 @@ pub enum Stmt {
         inc: Expr,
     },
 
+    ProcedureCall {
+        proc: String,
+        params: Vec<Expr>,
+    },
+    ProcedureDefinition {
+        prototype: ProcedurePrototype,
+        body: BlockStmt,
+    },
+
     Empty,
 }
 
@@ -131,6 +152,7 @@ pub struct Project {
     pub body: Stmt,
     pub variables: Vec<String>,
     pub lists: Vec<String>,
+    pub procedures: Vec<Stmt>,
 }
 
 fn block_chain_to_vec(file: &ScratchFile, root_block: ScratchBlock) -> Vec<Stmt> {
@@ -139,8 +161,6 @@ fn block_chain_to_vec(file: &ScratchFile, root_block: ScratchBlock) -> Vec<Stmt>
 
     loop {
         let next = &curr_block.next;
-
-        info!("curr_block is {:#?}", curr_block);
 
         ret.push(scratch_block_to_statement(file, curr_block.clone()));
 
@@ -171,6 +191,12 @@ fn expr_from_block(file: &ScratchFile, block: ScratchBlock) -> Expr {
     match str_array[0] {
         "operator" => operator::expr_from_operator(file, block.clone(), str_array[1]),
         "data" => data::expr_from_data(file, block.clone(), str_array[1]),
+        "argument" => Expr::Param(
+            block.fields["VALUE"].to_vec()[0]
+                .as_str()
+                .unwrap()
+                .to_string(),
+        ),
         _ => todo!("{}", block.opcode.as_str()),
     }
 }
@@ -201,6 +227,7 @@ fn scratch_val_to_expr(file: &ScratchFile, val: ScratchValue) -> Expr {
 fn scratch_block_to_statement(file: &ScratchFile, block: ScratchBlock) -> Stmt {
     let mut next_block: Option<ScratchBlock> = None;
 
+    info!("{:#?}", block);
     if block.next.is_some() {
         next_block = Some(
             file.targets[0]
@@ -224,26 +251,18 @@ fn scratch_block_to_statement(file: &ScratchFile, block: ScratchBlock) -> Stmt {
             control::control_to_statement(file, block.clone(), next_block, str_array[1].to_string())
         }
 
+        "procedures" => procedures::procedures_to_statement(file, block.clone(), str_array[1]),
+
         _ => todo!("{}", block.opcode.as_str()),
     }
-}
-
-fn scratch_file_to_body(file: &ScratchFile, root_block: ScratchBlock) -> Stmt {
-    scratch_block_to_statement(file, root_block)
 }
 
 pub fn scratch_file_to_project(file: &ScratchFile) -> Project {
     let mut root_block: Option<ScratchBlock> = None;
 
-    for block in file.targets[0].blocks.iter() {
-        if block.1.parent.is_none() && block.1.opcode != *"procedures_definition" {
-            root_block = Some(block.1.clone());
-            break;
-        }
-    }
-
     let mut vars: Vec<String> = vec![];
     let mut lists: Vec<String> = vec![];
+    let mut procedures: Vec<Stmt> = vec![];
 
     for var in &file.targets[0].variables {
         vars.push(var.1 .0.to_string());
@@ -253,9 +272,18 @@ pub fn scratch_file_to_project(file: &ScratchFile) -> Project {
         lists.push(list.1 .0.to_string());
     }
 
+    for block in file.targets[0].blocks.iter() {
+        if block.1.parent.is_none() && block.1.opcode != *"procedures_definition" {
+            root_block = Some(block.1.clone());
+        } else if block.1.parent.is_none() && block.1.opcode == *"procedures_definition" {
+            procedures.push(scratch_block_to_statement(file, block.1.clone()));
+        }
+    }
+
     Project {
-        body: scratch_file_to_body(file, root_block.unwrap()),
+        body: scratch_block_to_statement(file, root_block.unwrap()),
         variables: vars,
         lists,
+        procedures,
     }
 }

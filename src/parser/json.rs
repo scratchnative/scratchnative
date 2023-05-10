@@ -15,10 +15,11 @@ pub struct JsonScratchBlock {
     pub next: serde_json::Value,
     pub parent: serde_json::Value,
     pub inputs: HashMap<String, serde_json::Value>,
-    pub fields: HashMap<String, Vec<String>>,
+    pub fields: HashMap<String, Vec<serde_json::Value>>,
     pub shadow: bool,
     #[serde(alias = "topLevel")]
     pub top_level: bool,
+    pub mutation: Option<HashMap<String, serde_json::Value>>,
 }
 #[derive(Serialize, Debug, Deserialize)]
 pub struct JsonScratchTarget {

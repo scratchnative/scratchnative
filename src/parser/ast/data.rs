@@ -13,9 +13,9 @@ pub fn data_to_statement(file: &ScratchFile, block: ScratchBlock, op: String) ->
         },
 
         "setvariableto" => Stmt::SetVariable {
-            name: block.fields["VARIABLE"][0].to_string(),
+            name: block.fields["VARIABLE"][0].as_str().unwrap().to_string(),
             val: scratch_val_to_expr(file, block.inputs["VALUE"].1.clone()),
-            id: block.fields["VARIABLE"][1].to_string(),
+            id: block.fields["VARIABLE"][1].as_str().unwrap().to_string(),
         },
 
         "changevariableby" => Stmt::ChangeBy {

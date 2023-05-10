@@ -46,7 +46,7 @@ impl ScratchTypes {
         match value {
             10 => ScratchTypes::String,
             4 | 6 => ScratchTypes::Number,
-            2 | 3 => ScratchTypes::BlockCall,
+            2 | 3 | 1 => ScratchTypes::BlockCall,
             12 => ScratchTypes::Variable,
             _ => todo!("ScratchType {}", value),
         }
@@ -67,7 +67,8 @@ pub struct ScratchBlock {
     pub next: Option<String>,
     pub parent: Option<String>,
     pub inputs: HashMap<String, ScratchInput>,
-    pub fields: HashMap<String, Vec<String>>,
+    pub fields: HashMap<String, Vec<serde_json::Value>>,
+    pub mutation: HashMap<String, serde_json::Value>,
 }
 
 #[derive(Debug)]
@@ -111,9 +112,8 @@ fn scratch_variable_decl_of_json(vec: Vec<serde_json::Value>) -> ScratchVariable
 }
 
 fn scratch_value_of_array(array: Vec<serde_json::Value>) -> ScratchValue {
-    let mut val_type: ScratchTypes = ScratchTypes::from_i64(array[0].as_i64().unwrap());
-
     info!("{:#?}", array);
+    let mut val_type: ScratchTypes = ScratchTypes::from_i64(array[0].as_i64().unwrap());
 
     let val = match &array[1] {
         serde_json::Value::String(x) => x.to_string(),
@@ -143,7 +143,8 @@ fn scratch_value_of_array(array: Vec<serde_json::Value>) -> ScratchValue {
 
 fn scratch_block_of_json(block: &JsonScratchBlock) -> ScratchBlock {
     let mut inputs: HashMap<String, ScratchInput> = Default::default();
-    let mut fields: HashMap<String, Vec<String>> = Default::default();
+    let mut fields: HashMap<String, Vec<serde_json::Value>> = Default::default();
+    let mut mutations: HashMap<String, serde_json::Value> = Default::default();
 
     let next = if block.next.is_null() {
         None
@@ -159,6 +160,12 @@ fn scratch_block_of_json(block: &JsonScratchBlock) -> ScratchBlock {
 
     for field in &block.fields {
         fields.insert(field.0.to_string(), field.1.to_vec());
+    }
+
+    if block.mutation.is_some() {
+        for mutation in block.mutation.as_ref().unwrap() {
+            mutations.insert(mutation.0.to_string(), mutation.1.clone());
+        }
     }
 
     for input in &block.inputs {
@@ -182,6 +189,7 @@ fn scratch_block_of_json(block: &JsonScratchBlock) -> ScratchBlock {
         parent,
         inputs,
         fields,
+        mutation: mutations,
     }
 }
 
