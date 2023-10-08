@@ -1,5 +1,5 @@
 use colored::*;
-use log::info;
+use log::debug;
 use std::collections::HashMap;
 
 pub use self::ast::*;
@@ -112,7 +112,7 @@ fn scratch_variable_decl_of_json(vec: Vec<serde_json::Value>) -> ScratchVariable
 }
 
 fn scratch_value_of_array(array: Vec<serde_json::Value>) -> ScratchValue {
-    info!("{:#?}", array);
+    debug!("{:#?}", array);
     let mut val_type: ScratchTypes = ScratchTypes::from_i64(array[0].as_i64().unwrap());
 
     let val = match &array[1] {
@@ -123,10 +123,6 @@ fn scratch_value_of_array(array: Vec<serde_json::Value>) -> ScratchValue {
 
     if val_type == ScratchTypes::String && val.parse::<i64>().is_ok() {
         val_type = ScratchTypes::Number;
-    }
-
-    if val.is_empty() {
-        return ScratchValue(ScratchTypes::Number, ScratchValueData::Int(0));
     }
 
     let data: ScratchValueData = match val_type {

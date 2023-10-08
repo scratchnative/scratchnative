@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use log::info;
+use log::debug;
 
 use crate::parser::{ScratchBlock, ScratchFile, ScratchValue, ScratchValueData};
 
@@ -32,6 +32,9 @@ pub enum OpType {
     Not,
     Random,
     Modulo,
+    Length,
+    LetterOf,
+    Join,
 }
 
 impl OpType {
@@ -49,6 +52,9 @@ impl OpType {
             "not" => OpType::Not,
             "random" => OpType::Random,
             "mod" => OpType::Modulo,
+            "length" => OpType::Length,
+            "letter_of" => OpType::LetterOf,
+            "join" => OpType::Join,
 
             _ => todo!("{}", str),
         }
@@ -66,6 +72,11 @@ pub enum Expr {
     SingleOp {
         op: OpType,
         expr: Box<Expr>,
+    },
+
+    LetterOf {
+        val: Box<Expr>,
+        index: Box<Expr>,
     },
 
     ItemOf {
@@ -207,6 +218,7 @@ fn scratch_val_to_expr(file: &ScratchFile, val: ScratchValue) -> Expr {
         _ => None,
     };
 
+    debug!("{:#?}", val);
     match val.0 {
         ScratchTypes::Number => Expr::Val(scratch_val_data_to_val(&val.1)),
         ScratchTypes::String => Expr::Val(scratch_val_data_to_val(&val.1)),
@@ -227,7 +239,7 @@ fn scratch_val_to_expr(file: &ScratchFile, val: ScratchValue) -> Expr {
 fn scratch_block_to_statement(file: &ScratchFile, block: ScratchBlock) -> Stmt {
     let mut next_block: Option<ScratchBlock> = None;
 
-    info!("{:#?}", block);
+    debug!("{:#?}", block);
     if block.next.is_some() {
         next_block = Some(
             file.targets[0]
@@ -279,6 +291,8 @@ pub fn scratch_file_to_project(file: &ScratchFile) -> Project {
             procedures.push(scratch_block_to_statement(file, block.1.clone()));
         }
     }
+
+    debug!("root block is {:#?}", root_block);
 
     Project {
         body: scratch_block_to_statement(file, root_block.unwrap()),

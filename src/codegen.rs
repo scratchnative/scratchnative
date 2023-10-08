@@ -1,3 +1,5 @@
+use log::info;
+
 use crate::parser::*;
 
 fn bin_op_to_str(op: OpType) -> String {
@@ -12,6 +14,7 @@ fn bin_op_to_str(op: OpType) -> String {
         OpType::Multiply => "*",
         OpType::Not => "!",
         OpType::Or => "||",
+        OpType::Join => "+",
         OpType::Subtract => "-",
         _ => todo!("{:#?}", op),
     }
@@ -31,6 +34,7 @@ fn codegen_expr(expr: Expr) -> String {
             | OpType::GreaterThan
             | OpType::LessThan
             | OpType::Equals
+            | OpType::Join
             | OpType::Or => str.push_str(&format!(
                 "({}) {} ({})",
                 codegen_expr(*lhs),
@@ -43,6 +47,7 @@ fn codegen_expr(expr: Expr) -> String {
 
         Expr::SingleOp { op, expr } => match op {
             OpType::Not => str.push_str(&format!("!({})", codegen_expr(*expr))),
+            OpType::Length => str.push_str(&format!("({}).length()", codegen_expr(*expr))),
             _ => todo!("{:#?}", op),
         },
 
@@ -54,6 +59,12 @@ fn codegen_expr(expr: Expr) -> String {
         Expr::ItemOf { list_name, index } => str.push_str(&format!(
             "{}[static_cast<int>(({}-1).get<double>())]",
             list_name.replace(' ', "_"),
+            codegen_expr(*index)
+        )),
+
+        Expr::LetterOf { val, index } => str.push_str(&format!(
+            "{}[static_cast<int>(({}-1).get<double>())]",
+            codegen_expr(*val),
             codegen_expr(*index)
         )),
 

@@ -40,16 +40,16 @@ pub struct JsonScratchTarget {
 
     #[serde(alias = "layerOrder")]
     pub layer_order: i32,
-    pub tempo: i32,
+    pub tempo: Option<i32>,
 
     #[serde(alias = "videoTransparency")]
-    pub video_transparency: i32,
+    pub video_transparency: Option<i32>,
 
     #[serde(alias = "videoState")]
-    pub video_state: String,
+    pub video_state: Option<String>,
 
     #[serde(alias = "textToSpeechLanguage")]
-    pub text_to_speech_language: serde_json::Value,
+    pub text_to_speech_language: Option<serde_json::Value>,
 }
 
 #[derive(Serialize, Debug, Deserialize)]
