@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 #include <string>
 #include <variant>
 #include <vector>
@@ -94,6 +95,25 @@ public:
     if (_type == LIST)
       return get<ScratchList>().size();
     return 0;
+  }
+
+  void print(const char *string) {
+
+    switch (_type) {
+    case NUMBER:
+      std::cout << string << get<double>() << std::endl;
+      break;
+    case STRING:
+      std::cout << string << get<std::string>() << std::endl;
+      break;
+    case LIST:
+      std::cout << string << "[";
+      for (auto elem : get<ScratchList>()) {
+        elem.print(",");
+      }
+      std::cout << "]" << std::endl;
+      break;
+    }
   }
 
   template <typename T> T &get() { return std::get<T>(_value); }

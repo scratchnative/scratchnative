@@ -7,21 +7,21 @@ pub use self::json::*;
 mod ast;
 mod json;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ScratchMetadata {
     pub user_agent: String,
     pub semantic_version: String,
     pub vm_version: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ScratchInitializer {
     List(Vec<()>),
     Int(i64),
     String(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 //  "variables": { "`jEk@4|i[#Fk?(8x)AV.-my variable": ["my variable", 0] },
 pub struct ScratchVariableDecl(String, ScratchInitializer);
 
@@ -69,9 +69,10 @@ pub struct ScratchBlock {
     pub inputs: HashMap<String, ScratchInput>,
     pub fields: HashMap<String, Vec<serde_json::Value>>,
     pub mutation: HashMap<String, serde_json::Value>,
+    pub target: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ScratchTarget {
     pub is_stage: bool,
     pub name: String,
@@ -80,7 +81,7 @@ pub struct ScratchTarget {
     pub blocks: HashMap<String, ScratchBlock>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ScratchFile {
     pub metadata: ScratchMetadata,
     pub targets: Vec<ScratchTarget>,
@@ -112,7 +113,6 @@ fn scratch_variable_decl_of_json(vec: Vec<serde_json::Value>) -> ScratchVariable
 }
 
 fn scratch_value_of_array(array: Vec<serde_json::Value>) -> ScratchValue {
-    debug!("{:#?}", array);
     let mut val_type: ScratchTypes = ScratchTypes::from_i64(array[0].as_i64().unwrap());
 
     let val = match &array[1] {
@@ -186,6 +186,7 @@ fn scratch_block_of_json(block: &JsonScratchBlock) -> ScratchBlock {
         inputs,
         fields,
         mutation: mutations,
+        target: 0,
     }
 }
 

@@ -1,5 +1,3 @@
-use log::info;
-
 use crate::parser::*;
 
 fn bin_op_to_str(op: OpType) -> String {
@@ -58,7 +56,7 @@ fn codegen_expr(expr: Expr) -> String {
 
         Expr::ItemOf { list_name, index } => str.push_str(&format!(
             "{}[static_cast<int>(({}-1).get<double>())]",
-            list_name.replace(' ', "_"),
+            list_name.replace(' ', "_").to_string(),
             codegen_expr(*index)
         )),
 
@@ -195,7 +193,7 @@ int main(void)
 "#
     .to_string();
 
-    for var in project.variables {
+    for var in &project.variables {
         str.push_str(&format!("ScratchValue {} = {{}};\n", var.replace(' ', "_")));
     }
 
@@ -208,6 +206,15 @@ int main(void)
     }
 
     str.push_str(&codegen_stmt(project.body));
+
+    for var in &project.variables {
+        str.push_str(&format!(
+            "{}.print(\"{} = \");\n",
+            var.replace(' ', "_"),
+            var.replace(' ', "_")
+        ));
+    }
+
     str.push_str("\nreturn 0;\n\n}");
 
     str

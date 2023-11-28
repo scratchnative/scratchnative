@@ -67,7 +67,7 @@ fn main() {
         parser::show_info(&scratch_file);
     }
 
-    let proj = parser::scratch_file_to_project(&scratch_file);
+    let proj = parser::scratch_file_to_project(scratch_file);
 
     debug!("AST:\n {:#?}", proj);
 

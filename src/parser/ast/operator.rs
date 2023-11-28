@@ -4,14 +4,30 @@ pub fn expr_from_operator(file: &ScratchFile, block: ScratchBlock, operator: &st
     debug!("{:#?} {}", block, operator);
     match operator {
         "add" | "subtract" | "multiply" | "divide" | "and" | "random" | "mod" => Expr::BinOp {
-            lhs: Box::new(scratch_val_to_expr(file, block.inputs["NUM1"].1.clone())),
-            rhs: Box::new(scratch_val_to_expr(file, block.inputs["NUM2"].1.clone())),
+            lhs: Box::new(scratch_val_to_expr(
+                file,
+                block.inputs["NUM1"].1.clone(),
+                &block,
+            )),
+            rhs: Box::new(scratch_val_to_expr(
+                file,
+                block.inputs["NUM2"].1.clone(),
+                &block,
+            )),
             op: OpType::from_str(operator),
         },
 
         "join" => Expr::BinOp {
-            lhs: Box::new(scratch_val_to_expr(file, block.inputs["STRING1"].1.clone())),
-            rhs: Box::new(scratch_val_to_expr(file, block.inputs["STRING2"].1.clone())),
+            lhs: Box::new(scratch_val_to_expr(
+                file,
+                block.inputs["STRING1"].1.clone(),
+                &block,
+            )),
+            rhs: Box::new(scratch_val_to_expr(
+                file,
+                block.inputs["STRING2"].1.clone(),
+                &block,
+            )),
             op: OpType::from_str(operator),
         },
 
@@ -19,16 +35,22 @@ pub fn expr_from_operator(file: &ScratchFile, block: ScratchBlock, operator: &st
             lhs: Box::new(scratch_val_to_expr(
                 file,
                 block.inputs["OPERAND1"].1.clone(),
+                &block,
             )),
             rhs: Box::new(scratch_val_to_expr(
                 file,
                 block.inputs["OPERAND2"].1.clone(),
+                &block,
             )),
             op: OpType::from_str(operator),
         },
 
         "not" => Expr::SingleOp {
-            expr: Box::new(scratch_val_to_expr(file, block.inputs["OPERAND"].1.clone())),
+            expr: Box::new(scratch_val_to_expr(
+                file,
+                block.inputs["OPERAND"].1.clone(),
+                &block,
+            )),
             op: OpType::from_str(operator),
         },
 
@@ -36,13 +58,21 @@ pub fn expr_from_operator(file: &ScratchFile, block: ScratchBlock, operator: &st
             op: OpType::from_str(operator),
             expr: {
                 let val = block.inputs.iter().collect::<Vec<_>>()[0].1 .1.clone();
-                Box::new(scratch_val_to_expr(file, val))
+                Box::new(scratch_val_to_expr(file, val, &block))
             },
         },
 
         "letter_of" => Expr::LetterOf {
-            val: Box::new(scratch_val_to_expr(file, block.inputs["STRING"].1.clone())),
-            index: Box::new(scratch_val_to_expr(file, block.inputs["LETTER"].1.clone())),
+            val: Box::new(scratch_val_to_expr(
+                file,
+                block.inputs["STRING"].1.clone(),
+                &block,
+            )),
+            index: Box::new(scratch_val_to_expr(
+                file,
+                block.inputs["LETTER"].1.clone(),
+                &block,
+            )),
         },
 
         _ => todo!("{}", operator),

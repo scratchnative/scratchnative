@@ -45,7 +45,7 @@ pub fn control_to_statement(
             let body_block_name = get_input_block_name("SUBSTACK");
 
             Stmt::Repeat {
-                times: scratch_val_to_expr(file, block.inputs["TIMES"].1.clone()),
+                times: scratch_val_to_expr(file, block.inputs["TIMES"].1.clone(), &block),
                 block: BlockStmt {
                     stmts: block_chain_to_vec(
                         file,

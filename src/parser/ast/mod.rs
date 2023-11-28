@@ -173,13 +173,13 @@ fn block_chain_to_vec(file: &ScratchFile, root_block: ScratchBlock) -> Vec<Stmt>
     loop {
         let next = &curr_block.next;
 
-        ret.push(scratch_block_to_statement(file, curr_block.clone()));
+        ret.push(scratch_block_to_statement(file.clone(), curr_block.clone()));
 
         if next.is_none() {
             break;
         }
 
-        curr_block = file.targets[0]
+        curr_block = file.targets[curr_block.target]
             .blocks
             .get(&next.clone().unwrap().to_string())
             .unwrap();
@@ -212,7 +212,7 @@ fn expr_from_block(file: &ScratchFile, block: ScratchBlock) -> Expr {
     }
 }
 
-fn scratch_val_to_expr(file: &ScratchFile, val: ScratchValue) -> Expr {
+fn scratch_val_to_expr(file: &ScratchFile, val: ScratchValue, orig_block: &ScratchBlock) -> Expr {
     let block = match val.1.clone() {
         ScratchValueData::BlockCall(x) => Some(x),
         _ => None,
@@ -222,9 +222,10 @@ fn scratch_val_to_expr(file: &ScratchFile, val: ScratchValue) -> Expr {
     match val.0 {
         ScratchTypes::Number => Expr::Val(scratch_val_data_to_val(&val.1)),
         ScratchTypes::String => Expr::Val(scratch_val_data_to_val(&val.1)),
-        ScratchTypes::BlockCall => {
-            expr_from_block(file, file.targets[0].blocks[&block.unwrap()].clone())
-        }
+        ScratchTypes::BlockCall => expr_from_block(
+            file,
+            file.targets[orig_block.target].blocks[&block.unwrap()].clone(),
+        ),
 
         ScratchTypes::Variable => {
             if let ScratchValueData::Variable(x) = val.1 {
@@ -236,13 +237,11 @@ fn scratch_val_to_expr(file: &ScratchFile, val: ScratchValue) -> Expr {
     }
 }
 
-fn scratch_block_to_statement(file: &ScratchFile, block: ScratchBlock) -> Stmt {
+fn scratch_block_to_statement(file: ScratchFile, block: ScratchBlock) -> Stmt {
     let mut next_block: Option<ScratchBlock> = None;
-
-    debug!("{:#?}", block);
     if block.next.is_some() {
         next_block = Some(
-            file.targets[0]
+            file.targets[block.target]
                 .blocks
                 .get(&block.next.clone().unwrap())
                 .unwrap()
@@ -254,41 +253,52 @@ fn scratch_block_to_statement(file: &ScratchFile, block: ScratchBlock) -> Stmt {
 
     match str_array[0] {
         "event" => {
-            event::event_to_statement(file, block.clone(), next_block, str_array[1].to_string())
+            event::event_to_statement(&file, block.clone(), next_block, str_array[1].to_string())
         }
 
-        "data" => data::data_to_statement(file, block.clone(), str_array[1].to_string()),
+        "data" => data::data_to_statement(&file, block.clone(), str_array[1].to_string()),
 
-        "control" => {
-            control::control_to_statement(file, block.clone(), next_block, str_array[1].to_string())
-        }
+        "control" => control::control_to_statement(
+            &file,
+            block.clone(),
+            next_block,
+            str_array[1].to_string(),
+        ),
 
-        "procedures" => procedures::procedures_to_statement(file, block.clone(), str_array[1]),
+        "procedures" => procedures::procedures_to_statement(&file, block.clone(), str_array[1]),
 
         _ => todo!("{}", block.opcode.as_str()),
     }
 }
 
-pub fn scratch_file_to_project(file: &ScratchFile) -> Project {
+pub fn scratch_file_to_project(mut file: ScratchFile) -> Project {
     let mut root_block: Option<ScratchBlock> = None;
 
     let mut vars: Vec<String> = vec![];
     let mut lists: Vec<String> = vec![];
     let mut procedures: Vec<Stmt> = vec![];
 
-    for var in &file.targets[0].variables {
-        vars.push(var.1 .0.to_string());
-    }
+    for (i, target) in file.targets.iter_mut().enumerate() {
+        for var in &target.variables {
+            vars.push(var.1 .0.to_string());
+        }
 
-    for list in &file.targets[0].lists {
-        lists.push(list.1 .0.to_string());
-    }
+        for list in &target.lists {
+            lists.push(list.1 .0.to_string());
+        }
 
-    for block in file.targets[0].blocks.iter() {
-        if block.1.parent.is_none() && block.1.opcode != *"procedures_definition" {
-            root_block = Some(block.1.clone());
-        } else if block.1.parent.is_none() && block.1.opcode == *"procedures_definition" {
-            procedures.push(scratch_block_to_statement(file, block.1.clone()));
+        for block in &mut target.blocks {
+            block.1.target = i;
+
+            log::info!("{}", i);
+
+            if block.1.parent.is_none() && block.1.opcode == *"event_whenflagclicked" {
+                root_block = Some(block.1.clone());
+            }
+
+            if block.1.parent.is_none() && block.1.opcode == *"procedures_definition" {
+                procedures.push(scratch_block_to_statement(file, block.1.clone()));
+            }
         }
     }
 
